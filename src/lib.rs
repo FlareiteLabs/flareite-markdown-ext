@@ -1,4 +1,4 @@
-//! Markdown: an example Ferrite extension with a preview.
+//! Markdown for Flareite: highlighting and a preview.
 //!
 //! Highlighting needs no code: the manifest declares the Tree-sitter
 //! grammars and their queries. This code is the preview:
@@ -9,19 +9,18 @@
 //!
 //! A preview follows its document as it changes, and closes with it. The
 //! page is sent as preview nodes (headings, paragraphs, lists, tables,
-//! links, pictures), which the workbench draws itself; see `render` for how
-//! Markdown maps to them.
-
-mod render;
+//! links, pictures), which the workbench draws itself. The editor turns the
+//! Markdown into them (`workbench::render-markdown`), as it does for
+//! extensions' READMEs.
 
 use std::cell::RefCell;
 use std::collections::BTreeSet;
 
-use ferrite_extension_api::types::{
+use flareite_extension_api::types::{
   Activation, ApiError, CommandContext, DocumentChange, DocumentId, DocumentInfo, LogLevel,
   PreviewOptions,
 };
-use ferrite_extension_api::{Guest, export_extension, host, types, workbench};
+use flareite_extension_api::{Guest, export_extension, host, workbench};
 
 /// The preview declared in the manifest. Each document has its own, keyed
 /// by the document's id.
@@ -77,7 +76,7 @@ fn read_text(info: &DocumentInfo) -> Result<String, ApiError> {
 /// user has closed it.
 fn update(id: DocumentId) -> Result<(), ApiError> {
   let info = host::document(id)?;
-  let nodes = render::render(&read_text(&info)?);
+  let nodes = workbench::render_markdown(&read_text(&info)?)?;
   if !workbench::set_preview_content(PREVIEW, &id.to_string(), &nodes)? {
     PREVIEWED.with_borrow_mut(|previewed| previewed.remove(&id));
   }
@@ -95,8 +94,8 @@ impl Guest for Markdown {
 
   fn run_command(command: String, context: CommandContext) -> Result<(), String> {
     let beside = match command.as_str() {
-      "ferrite.markdown.preview" => false,
-      "ferrite.markdown.previewToSide" => true,
+      "flareite.markdown.preview" => false,
+      "flareite.markdown.previewToSide" => true,
       other => return Err(format!("unknown command {other}")),
     };
     let Some(id) = context.document else {

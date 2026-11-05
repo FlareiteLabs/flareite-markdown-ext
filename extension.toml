@@ -1,38 +1,38 @@
 # Markdown: highlighting from Tree-sitter grammars compiled to WebAssembly
-# (no code needed for that), and a preview, which is code: it renders the
-# document with pulldown-cmark and fills in a preview tab as you type. See
-# docs/extensions.md#previews.
-id = "ferrite.markdown"
+# (no code needed for that), and a preview, which is code: it asks the
+# editor to render the document (`workbench::render-markdown`) and fills in
+# a preview tab as you type. See "Previews" in Flareite's docs/extensions.md.
+id = "flareite.markdown"
 name = "Markdown"
 version = "0.1.0"
 description = "Markdown highlighting, and a preview of the rendered page."
-author = "Ferrite"
+author = "Flareite"
 icon = "icon.svg"
 api_version = "1"
-entrypoint = "../target/wasm32-unknown-unknown/release/markdown.wasm"
+entrypoint = "target/wasm32-unknown-unknown/release/markdown.wasm"
 
 [engines]
-ferrite = ">=0.1.0"
+flareite = ">=0.1.0"
 
 # To read the document it previews.
 [permissions]
 documents_read = true
 
 [[commands]]
-id = "ferrite.markdown.preview"
+id = "flareite.markdown.preview"
 title = "Open Preview"
 
 [[commands]]
-id = "ferrite.markdown.previewToSide"
+id = "flareite.markdown.previewToSide"
 title = "Open Preview to the Side"
 
 [[keybindings]]
-command = "ferrite.markdown.preview"
+command = "flareite.markdown.preview"
 key = "mod+shift+v"
 when = "editorFocus"
 
 [[keybindings]]
-command = "ferrite.markdown.previewToSide"
+command = "flareite.markdown.previewToSide"
 key = "mod+k v"
 when = "editorFocus"
 
