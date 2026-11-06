@@ -18,6 +18,11 @@ flareite = ">=0.1.0"
 [permissions]
 documents_read = true
 
+[build]
+command = "cargo"
+args = ["build", "--release"]
+watch = ["src", "Cargo.toml"]
+
 [[commands]]
 id = "flareite.markdown.preview"
 title = "Open Preview"
