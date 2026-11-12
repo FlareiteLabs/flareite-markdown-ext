@@ -4,11 +4,11 @@
 # a preview tab as you type. See "Previews" in Flareite's docs/extensions.md.
 id = "flareite.markdown"
 name = "Markdown"
-version = "0.2.0"
+version = "1.0.0"
 description = "Markdown highlighting, and a preview of the rendered page."
 author = "Flareite"
 icon = "icon.svg"
-api_version = "1"
+api_version = "2"
 entrypoint = "target/wasm32-unknown-unknown/release/markdown.wasm"
 
 [engines]

@@ -13,24 +13,18 @@
 //! Markdown into them (`workbench::render-markdown`), as it does for
 //! extensions' READMEs.
 
-use std::cell::RefCell;
 use std::collections::BTreeSet;
 
+use flareite_extension_api::events::Event;
 use flareite_extension_api::types::{
-  Activation, ApiError, CommandContext, DocumentChange, DocumentId, DocumentInfo, LogLevel,
-  PreviewOptions,
+  Activation, ApiError, CommandContext, DocumentId, DocumentInfo, LogLevel, PreviewOptions,
 };
-use flareite_extension_api::{Guest, export_extension, host, workbench};
+use flareite_extension_api::{Extension, host, register, workbench};
 
 /// The preview declared in the manifest. Each document has its own, keyed
 /// by the document's id.
 const PREVIEW: &str = "preview";
 const CHUNK_LINES: u32 = 10_000;
-
-thread_local! {
-  /// Documents whose previews are open.
-  static PREVIEWED: RefCell<BTreeSet<DocumentId>> = const { RefCell::new(BTreeSet::new()) };
-}
 
 fn describe(error: &ApiError) -> String {
   match error {
@@ -72,28 +66,46 @@ fn read_text(info: &DocumentInfo) -> Result<String, ApiError> {
   Ok(text)
 }
 
-/// Renders a document into its preview, and forgets the preview if the
-/// user has closed it.
-fn update(id: DocumentId) -> Result<(), ApiError> {
+/// Renders a document into its preview. Returns whether the preview is
+/// still open: the user may have closed it.
+fn update(id: DocumentId) -> Result<bool, ApiError> {
   let info = host::document(id)?;
   let nodes = workbench::render_markdown(&read_text(&info)?)?;
-  if !workbench::set_preview_content(PREVIEW, &id.to_string(), &nodes)? {
-    PREVIEWED.with_borrow_mut(|previewed| previewed.remove(&id));
-  }
-  Ok(())
+  workbench::set_preview_content(PREVIEW, &id.to_string(), &nodes)
 }
 
-struct Markdown;
+/// The documents whose previews are open.
+struct Markdown {
+  previewed: BTreeSet<DocumentId>,
+}
 
-impl Guest for Markdown {
-  fn activate(_context: Activation) -> Result<(), String> {
-    Ok(())
+impl Markdown {
+  fn refresh(&mut self, id: DocumentId) {
+    if !self.previewed.contains(&id) {
+      return;
+    }
+    match update(id) {
+      Ok(true) => {}
+      Ok(false) => {
+        self.previewed.remove(&id);
+      }
+      Err(error) => host::log(
+        LogLevel::Warn,
+        &format!("updating the preview failed: {}", describe(&error)),
+      ),
+    }
+  }
+}
+
+impl Extension for Markdown {
+  fn activate(_: Activation) -> Result<Self, String> {
+    Ok(Self {
+      previewed: BTreeSet::new(),
+    })
   }
 
-  fn deactivate() {}
-
-  fn run_command(command: String, context: CommandContext) -> Result<(), String> {
-    let beside = match command.as_str() {
+  fn run_command(&mut self, command: &str, context: CommandContext) -> Result<(), String> {
+    let beside = match command {
       "flareite.markdown.preview" => false,
       "flareite.markdown.previewToSide" => true,
       other => return Err(format!("unknown command {other}")),
@@ -112,29 +124,24 @@ impl Guest for Markdown {
     };
     workbench::show_preview(PREVIEW, &id.to_string(), &options)
       .map_err(|error| describe(&error))?;
-    PREVIEWED.with_borrow_mut(|previewed| previewed.insert(id));
-    update(id).map_err(|error| describe(&error))
+    self.previewed.insert(id);
+    if !update(id).map_err(|error| describe(&error))? {
+      self.previewed.remove(&id);
+    }
+    Ok(())
   }
 
-  fn document_opened(_document: DocumentInfo) {}
-
-  fn document_changed(change: DocumentChange) {
-    let id = change.document;
-    if !PREVIEWED.with_borrow(|previewed| previewed.contains(&id)) {
-      return;
+  fn handle_event(&mut self, event: Event) -> Result<(), String> {
+    match event {
+      Event::DocumentChanged(change) => self.refresh(change.document),
+      // The editor closes the document's preview itself.
+      Event::DocumentClosed(document) => {
+        self.previewed.remove(&document);
+      }
+      _ => {}
     }
-    if let Err(error) = update(id) {
-      host::log(
-        LogLevel::Warn,
-        &format!("updating the preview failed: {}", describe(&error)),
-      );
-    }
-  }
-
-  fn document_closed(document: DocumentId) {
-    // The editor closes the document's preview itself.
-    PREVIEWED.with_borrow_mut(|previewed| previewed.remove(&document));
+    Ok(())
   }
 }
 
-export_extension!(Markdown);
+register!(Markdown);
