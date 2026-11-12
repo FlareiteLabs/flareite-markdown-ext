@@ -4,7 +4,7 @@
 # a preview tab as you type. See "Previews" in Flareite's docs/extensions.md.
 id = "flareite.markdown"
 name = "Markdown"
-version = "0.1.0"
+version = "0.2.0"
 description = "Markdown highlighting, and a preview of the rendered page."
 author = "Flareite"
 icon = "icon.svg"
@@ -59,6 +59,71 @@ folds = "queries/markdown/folds.scm"
 injections = "queries/markdown/injections.scm"
 # Markdown has no comments of its own; HTML comments work in it.
 block_comment = ["<!--", "-->"]
+# Brackets and quotes typed in pairs, as in VS Code's language configuration.
+brackets = [["{", "}"], ["[", "]"], ["(", ")"]]
+auto_closing_pairs = [
+  [
+    "{",
+    "}",
+  ],
+  [
+    "[",
+    "]",
+  ],
+  [
+    "(",
+    ")",
+  ],
+  { open = "<", close = ">", not_in = [
+    "string",
+  ] },
+]
+surrounding_pairs = [
+  [
+    "(",
+    ")",
+  ],
+  [
+    "[",
+    "]",
+  ],
+  [
+    "`",
+    "`",
+  ],
+  [
+    "_",
+    "_",
+  ],
+  [
+    "*",
+    "*",
+  ],
+  [
+    "{",
+    "}",
+  ],
+  [
+    "'",
+    "'",
+  ],
+  [
+    '"',
+    '"',
+  ],
+  [
+    "<",
+    ">",
+  ],
+  [
+    "~",
+    "~",
+  ],
+  [
+    "$",
+    "$",
+  ],
+]
 
 # The text inside paragraphs, headings, and table cells, which the Markdown
 # grammar leaves to this one. It has no files of its own.
